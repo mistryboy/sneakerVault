@@ -4,17 +4,30 @@ import { allProducts } from '../data/products';
 const ProductContext = createContext();
 
 export function ProductProvider({ children }) {
-  const [products, setProducts] = useState(allProducts);
+  const [products, setProducts] = useState(() => {
+    const saved = localStorage.getItem('sneaker_vault_products');
+    return saved ? JSON.parse(saved) : allProducts;
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Reverting to Simple Method: Load products from local data file
-    setProducts(allProducts);
-    setLoading(false);
-  }, []);
+    localStorage.setItem('sneaker_vault_products', JSON.stringify(products));
+  }, [products]);
+
+  const addProduct = (product) => {
+    setProducts(prev => [product, ...prev]);
+  };
+
+  const updateProduct = (id, updatedProduct) => {
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updatedProduct } : p));
+  };
+
+  const deleteProduct = (id) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+  };
 
   return (
-    <ProductContext.Provider value={{ products, loading }}>
+    <ProductContext.Provider value={{ products, loading, addProduct, updateProduct, deleteProduct }}>
       {children}
     </ProductContext.Provider>
   );

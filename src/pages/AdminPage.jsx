@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { db } from '../firebase';
-import { collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { PackagePlus, Loader, ShieldAlert, List, Trash2, Edit2, X } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
@@ -8,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AdminPage() {
   const navigate = useNavigate();
-  const { products, loading: productsLoading } = useProducts();
+  const { products, loading: productsLoading, addProduct, updateProduct, deleteProduct } = useProducts();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -69,13 +67,14 @@ export default function AdminPage() {
       };
 
       if (editingId) {
-        await updateDoc(doc(db, 'products', editingId), payload);
+        updateProduct(editingId, payload);
         setSuccess('Product thoroughly modified.');
         setEditingId(null);
         setActiveTab('inventory');
       } else {
+        payload.id = 'p' + Date.now();
         payload.createdAt = new Date().toISOString();
-        await addDoc(collection(db, 'products'), payload);
+        addProduct(payload);
         setSuccess('Product successfully deployed to the Vault.');
       }
       
@@ -83,16 +82,16 @@ export default function AdminPage() {
       setFormData(initialForm);
 
     } catch (error) {
-      console.error("Error setting document: ", error);
+      console.error("Error updating products: ", error);
       alert('Action failed: ' + error.message);
     }
     setLoading(false);
   };
 
-  const handleDelete = async (id, name) => {
+  const handleDeleteItem = (id, name) => {
     if (window.confirm(`WARNING: Are you absolutely sure you want to permanently delete "${name}" from the Vault?`)) {
       try {
-        await deleteDoc(doc(db, 'products', id));
+        deleteProduct(id);
         setSuccess(`"${name}" was securely purged.`);
         setTimeout(() => setSuccess(''), 3000);
       } catch (err) {
@@ -307,7 +306,7 @@ export default function AdminPage() {
                                           <Edit2 className="w-4 h-4" />
                                      </button>
                                      <button 
-                                        onClick={() => handleDelete(product.id, product.name)}
+                                        onClick={() => handleDeleteItem(product.id, product.name)}
                                         className="w-10 h-10 border border-white/10 flex items-center justify-center text-vault-red/50 hover:bg-vault-red hover:border-vault-red hover:text-white transition-all"
                                         title="Delete Product"
                                       >
